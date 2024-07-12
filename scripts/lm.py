@@ -1,5 +1,5 @@
 import random
-from corpus import tokenize
+from scripts.corpus import tokenize
 
 
 def get_ngrams(tokens, n): # Inputs: a list of strings and n for n-gram

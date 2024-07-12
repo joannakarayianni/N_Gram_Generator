@@ -1,6 +1,6 @@
 """ Run program directly from this file"""
-from corpus import tokenize, detokenize
-from lm import LanguageModel
+from scripts.corpus import tokenize, detokenize
+from scripts.lm import LanguageModel
 
 # First we want to create a LM with a user specified n:
 def users_model():

@@ -9,3 +9,6 @@ The program consists of three parts:
 2. Language Model Core (lm.py): Trains on the provided text data, learning how often sequences of words (n-grams) appear together. Then, it predicts the probability of the next word in a sequence and generates new text that statistically resembles the training data.
 
 3. User Interface (main.py): Allows users to interact with the program. Users are able to create the language model, specifying the number of words to consider together (n), load text files for training, generate new text, and save the generated text to a file of their choice
+
+# Run 
+python3 ./scripts/main.py

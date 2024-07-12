@@ -1,0 +1,134 @@
+import random
+from corpus import tokenize
+
+
+def get_ngrams(tokens, n): # Inputs: a list of strings and n for n-gram
+    # Initializing padding to our input sequence, adding n-1 None values at the beginning and end of the list
+    padded_tokens = [None] * (n - 1) + tokens + [None] * (n - 1)
+    # Iterating through the padding sequence to extract sublists of n size to create the n-grams as a tuple of tokens
+    ngrams = [tuple(padded_tokens[i:i + n]) for i in range(len(tokens) + n - 1)]
+
+    return ngrams
+
+# Testing get_ngrams function by provided example in the handout:
+'''ngrams = get_ngrams([ 'the ', 'cat ', 'in ', 'the ', 'hat '], 4)
+print("Generated ngrams:", ngrams)'''
+
+
+# Initializing normalize function to help us with p_next
+def normalize(word_counts): # word_counts is a dictionary with words as keys and their counts as values
+    total_count = sum(word_counts.values()) # Total count of words according to their values
+    # Creating a new dictionary that iterates through each key-value pair in word_counts dic. and computes normalized probability
+    normalized_distribution = {word: count / total_count for word, count in word_counts.items()}
+    
+    return normalized_distribution
+
+# Initializing sample function to help us with generate
+def sample(distribution): # Input is a probability distribution as a dic. with values summing up to 1
+    # Generating a random number 
+    random_number = random.random()
+    # Keeping track as we are iterating through the distribution
+    total_probability = 0
+    # Going through each pair in distribution dic.
+    for word, probability in distribution.items():
+        # Adding current word's prob. to variable 
+        total_probability += probability
+        # Checking if random prob. is less or equal to the total prob. so far, return word with highest accumulated prob.
+        if random_number <= total_probability:
+            
+            return word
+
+# Testing sample function by assigning probabilities to the terms:
+'''word_probabilities = {'the': 0.1, 'cat': 0.4, 'runs': 0.4, 'dog': 0.1}
+sampled_word = sample(word_probabilities)
+print("Word:", sampled_word)'''
+
+
+class LanguageModel:
+ # Class with parameter n for language model to use for n-grams   
+    def __init__(self, n): 
+        self.n = n
+        self.counts = {} # A dictionary for later predictions
+        self.vocabulary = set([None]) # A set, keeps track of all unique words during training
+    
+
+    def train(self, token_sequences):
+        # Generating n-grams from the tokens making use out of the get_ngrams function
+        for tokens in token_sequences:
+            ngrams = get_ngrams(tokens, self.n)
+            self.vocabulary.update(tokens) # Update vocabulary set with the unique words seen in sequence
+            
+            for ngram in ngrams:
+                # Iterating through each n-gram in list:
+                prefix = ngram[:-1] # all elements except the last one
+                suffix = ngram[-1] # last element
+                
+                if prefix not in self.counts:
+                    # If prefix not in dictionary, we create a new sub-dictionary for different word counts after the specific prefix
+                    self.counts[prefix] = {}
+                    # Update count for suffix following prefix
+                self.counts[prefix][suffix] = self.counts[prefix].get(suffix, 0) + 1
+    
+    
+    def p_next(self, tokens): # Input is a list of arbitrarily many tokens
+        # Extracting the final n-1 tokens and convert them into a tuple
+        prefix = tuple(tokens[-(self.n - 1):])
+        # Retrieving counts for the prefix from self.counts dic.
+        word_counts = self.counts.get(prefix, {})
+        # Normalize the retrieved word counts (if any) to a probability distribution
+        probability_distribution = normalize(word_counts)
+        # For EOS symbol set None and the probability for it to 0
+        probability_distribution[None] = probability_distribution.get(None, 0) 
+        # Checking if word_counts for prefix is empty and using uniform distribution in case we have unseen prefixes
+        if not word_counts:
+            num_words = len(self.vocabulary)
+            
+            return {word: 1/num_words for word in self.vocabulary}
+        
+        '''# *Only* for testing: setting probabilities for mouse and dog preceding <cat and>:  
+        if 'cat' in prefix and 'and' in prefix:
+            probability_distribution['mouse'] = 0.6
+            probability_distribution['dog'] = 0.4
+            
+        # If <cat and> are not in the sequence:
+        else:  
+            num_words = len(self.vocabulary)
+            return {word: 1/num_words for word in self.vocabulary}'''
+           
+        return probability_distribution
+        
+        
+    def generate(self): # Predicting and appending words to the generating sequence
+        # Creating a list that will store words generated by the LM
+        generated_tokens = [] 
+        # Generating a sequence 
+        while True:
+            # Getting the probability distribution for the next word
+            probability_distribution = self.p_next(generated_tokens)
+            # Sampling the next word according to its assigned probabilities
+            next_word = sample(probability_distribution)
+            # We do not want None-EOS in our generated sequence
+            if next_word is None:
+                break    
+            # Appending the tokens after applying sample function at next_word, to generated_tokens list 
+            generated_tokens.append(next_word)
+            
+        return generated_tokens
+
+# *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+
+# Testing methods: 
+'''if __name__ == "__main__":
+    lm = LanguageModel(3)
+    lm.train([['the', 'cat', 'runs'], ['the', 'dog', 'runs']])
+    print('Vocabulary:', lm.vocabulary)
+    print('Counts:', lm.counts)
+    
+    # Testing for p_next:
+    input_sequence = ['cat', 'the']
+    probability_distribution = lm.p_next(input_sequence) 
+    print('Probabilities of Tokens:', probability_distribution)
+    
+    # Testing for generate:
+    generated_sequence = lm.generate()
+    print('Generated Sequence:',generated_sequence)'''
